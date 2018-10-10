@@ -12,7 +12,6 @@
 #include <io.h>
 #include <fcntl.h>
 
-#define MEOW
 #ifdef MEOW
 #define PRINTF printf
 #else
