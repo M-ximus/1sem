@@ -12,6 +12,11 @@ Stack* stackCreate(size_t len)
     if (myStack == nullptr)
         return nullptr;
 
+    srand(time(nullptr));
+    myStack->struct_canary_left = myStack->struct_canary_right = rand();
+
+    myStack->hash = 0;
+
     if(len == 0)
     {
         myStack->capasity = 0;
@@ -33,37 +38,57 @@ Stack* stackCreate(size_t len)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-//!
-//----------------------------------------------------------------------------------------------------------------------
-
-safety_Stack* safety_stackCreate(size_t len)
-{
-
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 //! This function check your stack and put number of error in the mystack->errors
 //! \param mystack - address of your stack
 //! \return - 1 if it Ok
 //----------------------------------------------------------------------------------------------------------------------
 
-int stackOk(Stack* mystack)
+bool stackOk(Stack* mystack)
 {
     if (mystack == nullptr)
     {
         CRY_PRINTF("!!!Bad address of your struct!!!");
         return 0;
     }
+
+    if (mystack->struct_canary_left != mystack->struct_canary_right)
+    {
+        mystack->errors = Killed_struct_canary;// mutable
+        CRY_PRINTF("!!!Struct canary died!!!");
+        return 0;
+    }
+
+    if (mystack->left_canary[1] != mystack->right_canary[1] && mystack->right_canary[0] == 0 && mystack->left_canary[0] == 0)
+    {
+        mystack->errors = Killed_Stack_canary;
+        CRY_PRINTF("!!!Stack canary died!!!");
+    }
+
     if (mystack->size == -1)
     {
         mystack->errors = Bad_size;
         CRY_PRINTF("!!!Bad size of your struct!!!");
         return 0;
     }
+
     if (mystack->capasity == -1)
     {
         mystack->errors = Bad_capasity;
         CRY_PRINTF("!!!Bad capasity of your struct!!!");
+        return 0;
+    }
+
+    if (mystack->size > mystack->capasity)
+    {
+        mystack->errors = Size_bigger_capasity;
+        CRY_PRINTF("!!!size bigger capasity!!!");
+        return 0;
+    }
+
+    if(CHECK_HASH(mystack) + 0 != 0)
+    {
+        mystack->errors = Hash_was_changed;
+        CRY_PRINTF("!!!Somebody(YOU!) broke your Stack. Hash was changed!!!");
         return 0;
     }
     return 1;
@@ -82,13 +107,13 @@ int stackPush(Stack* mystack, data_t element)
 
     assert(element == element);
 
-    if(mystack->size == mystack->capasity)
+    if (mystack->size == mystack->capasity)
         stackIncrease(mystack);
 
     mystack->Stack[(mystack->size)] = element;
     mystack->size++;
 
-    Assert_OK(mystack);
+    ASSERT_OK(mystack);
 
     return 1;
 }
@@ -105,7 +130,7 @@ data_t stackPop(Stack* mystack)
 {
     Assert_OK(mystack);
 
-    if(mystack->size == 0)
+    if (mystack->size == 0)
     {
         mystack->errors = Pop_zero_size;
         return NAN;
@@ -115,7 +140,7 @@ data_t stackPop(Stack* mystack)
     mystack->Stack[(mystack->size - 1)] = Poison_for_data;
     (mystack->size)--;
 
-    if((mystack->size == (mystack->capasity / 4)) && (mystack->capasity > 4))
+    if ((mystack->size == (mystack->capasity / 4)) && (mystack->capasity > 4))
         stackReduce(mystack);
 
     Assert_OK(mystack);
@@ -234,7 +259,7 @@ int Dump(Stack* mystack)
 
     DUMPname(mystack);
     printf("[%p]", mystack);
-    if(mystack == nullptr)
+    if (mystack == nullptr)
     {
         printf(" (ERROR!!!!!!!!!!!!!!!)");
         check = 0;
@@ -243,7 +268,7 @@ int Dump(Stack* mystack)
     printf("\n{\n");
 
     printf("\tcapasity = %ld\n", mystack->capasity);
-    if(mystack->capasity == Poison_for_size)
+    if (mystack->capasity == Poison_for_size)
     {
         printf(" ERROR!!!!!!!!!!!!!");
         check = 0;
@@ -251,7 +276,7 @@ int Dump(Stack* mystack)
     printf("\n");
 
     printf("\tsize = %ld", mystack->size);
-    if(mystack->capasity < mystack->size || mystack->size == Poison_for_size)
+    if (mystack->capasity < mystack->size || mystack->size == Poison_for_size)
     {
         printf(" ERROR!!!!!!!!!!!!!");
         check = 0;
@@ -259,18 +284,18 @@ int Dump(Stack* mystack)
     printf("\n");
 
     printf("\tStack %p\n", mystack->Stack);
-    for(size_t i = 0; i < mystack->size; i++)
+    for(size_t i = 0; i < mystack->size && mystack->size != Poison_for_size && mystack->capasity != Poison_for_size; i++)
     {
         printf("\t*[%ld] = %lg", i, mystack->Stack[i]);
-        if(mystack->Stack[i] == Poison_for_data)
+        if (mystack->Stack[i] == Poison_for_data)
             printf(" ERROR!!!!!!!!!!");
         printf("\n");
     }
 
-    for(size_t i = mystack->size; i < mystack->capasity; i++)
+    for(size_t i = mystack->size; i < mystack->capasity && mystack->size != Poison_for_size && mystack->capasity != Poison_for_size; i++)
     {
         printf("\t [%ld] = %lg", i, mystack->Stack[i]);
-        if(mystack->Stack[i] == Poison_for_data)
+        if (mystack->Stack[i] == Poison_for_data)
             printf(" ERROR!!!!!!!!!!");
         printf("\n");
     }
@@ -287,9 +312,75 @@ int Dump(Stack* mystack)
 
 void Assert_OK(Stack* mystack)
 {
-    if(!stackOk(mystack))
+    if (!stackOk(mystack))
     {
         Dump(mystack);
         assert(mystack);
     }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//! This function calculate hash sum by my special algorithm
+//!
+//! \param mystack - address of your stack
+//! \return - hash
+//----------------------------------------------------------------------------------------------------------------------
+
+data_t calc_hash(Stack* mystack)
+{
+    long long hash = 0;
+
+    for(int i = 0; i < mystack->size; i++)
+    {
+        int shift = (i + Shift) % 64;
+        long long binary_num = (long long) mystack->Stack[i];
+
+        long long circular_num = binary_num << shift;
+        long long end_num      = binary_num >> shift;
+
+        circular_num = circular_num | end_num;
+
+        hash = hash ^ circular_num;
+    }
+
+    return (data_t) hash;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//! This function compare new hash with hash of stack
+//!
+//! \param mystack - address of your stack
+//! \return - false if mystack == nullptr or stack was broken else true
+//----------------------------------------------------------------------------------------------------------------------
+bool check_hash(Stack* mystack)
+{
+    if (mystack == nullptr)
+        return false;
+
+    if(calc_hash(mystack) == mystack->hash)
+        return true;
+
+    return false;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//! This function recalculate hash when an element was poped
+//!
+//! \param mystack - address of your stack
+//! \return - new hash
+//----------------------------------------------------------------------------------------------------------------------
+data_t recalc_Pop_hash(Stack* mystack)
+{
+
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//! THis function recalculate hash when new element was pushed
+//!
+//! \param mystack - address of your stack
+//! \return - new hash
+//----------------------------------------------------------------------------------------------------------------------
+data_t recalc_Push_hash(Stack* mystack)
+{
+
 }

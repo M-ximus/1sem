@@ -24,6 +24,8 @@ int main() {
         stackPush(testStack, 1);
     assert(num_Pop == testStack->size);
 
+    //printf("%g", calc_hash(testStack));
+
     for(int i = num_Pop; i > 0; i--)
         assert(1 == stackPop(testStack));
     assert(testStack->size == 0);
@@ -36,13 +38,14 @@ int main() {
     //assert(testStack->capasity == Poison_for_size);
     //assert(testStack->Stack == nullptr);
 
-    stackPush(testStack, 1);
-
+    //stackPush(testStack, 1);
 
     Stack* test_incilised_Stack = stackCreate(3);
     assert(stackOk(test_incilised_Stack));
 
     assert(test_incilised_Stack->capasity == 3);
+
+    test_incilised_Stack->capasity = Poison_for_size;
 
     for(int i = 0; i < num_Pop; i++)
         stackPush(test_incilised_Stack, 1);

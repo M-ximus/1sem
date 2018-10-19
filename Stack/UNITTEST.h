@@ -5,9 +5,9 @@
 #ifndef UNTITLED4_UNITTEST_H
 #define UNTITLED4_UNITTEST_H
 
-#define UNITTEST( what, truth) \
+#define UNITTEST( what, opera, truth) \
 {\
-    if((what) != (truth))\
+    if(!((what) opera (truth)))\
         printf("FAIL test!!! %s != %s", #what, #truth)\
     else\
         printf("Test passed")\
