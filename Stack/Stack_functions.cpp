@@ -48,50 +48,51 @@ bool stackOk(Stack* mystack)
     if (mystack == nullptr)
     {
         CRY_PRINTF("!!!Bad address of your struct!!!");
-        return 0;
+        return false;
     }
 
     if (mystack->struct_canary_left != mystack->struct_canary_right)
     {
         mystack->errors = Killed_struct_canary;// mutable
         CRY_PRINTF("!!!Struct canary died!!!");
-        return 0;
+        return false;
     }
 
     if (mystack->left_canary[1] != mystack->right_canary[1] && mystack->right_canary[0] == 0 && mystack->left_canary[0] == 0)
     {
         mystack->errors = Killed_Stack_canary;
         CRY_PRINTF("!!!Stack canary died!!!");
+        return false;
     }
 
     if (mystack->size == -1)
     {
         mystack->errors = Bad_size;
         CRY_PRINTF("!!!Bad size of your struct!!!");
-        return 0;
+        return false;
     }
 
     if (mystack->capasity == -1)
     {
         mystack->errors = Bad_capasity;
         CRY_PRINTF("!!!Bad capasity of your struct!!!");
-        return 0;
+        return false;
     }
 
     if (mystack->size > mystack->capasity)
     {
         mystack->errors = Size_bigger_capasity;
         CRY_PRINTF("!!!size bigger capasity!!!");
-        return 0;
+        return false;
     }
 
     if(CHECK_HASH(mystack) + 0 != 0)
     {
         mystack->errors = Hash_was_changed;
         CRY_PRINTF("!!!Somebody(YOU!) broke your Stack. Hash was changed!!!");
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -112,6 +113,7 @@ int stackPush(Stack* mystack, data_t element)
 
     mystack->Stack[(mystack->size)] = element;
     mystack->size++;
+    recalc_Push_hash(mystack);
 
     ASSERT_OK(mystack);
 
@@ -128,7 +130,7 @@ int stackPush(Stack* mystack, data_t element)
 
 data_t stackPop(Stack* mystack)
 {
-    Assert_OK(mystack);
+    ASSERT_OK(mystack);
 
     if (mystack->size == 0)
     {
@@ -143,7 +145,9 @@ data_t stackPop(Stack* mystack)
     if ((mystack->size == (mystack->capasity / 4)) && (mystack->capasity > 4))
         stackReduce(mystack);
 
-    Assert_OK(mystack);
+    recalc_Pop_hash(mystack, last_element);
+
+    ASSERT_OK(mystack);
 
     return last_element;
 }
@@ -156,7 +160,7 @@ data_t stackPop(Stack* mystack)
 
 int stackClear(Stack* mystack)
 {
-    Assert_OK(mystack);
+    ASSERT_OK(mystack);
 
     memset(mystack->Stack, NAN, mystack->capasity);
     free(mystack->Stack);
@@ -176,13 +180,14 @@ int stackClear(Stack* mystack)
 
 int stack_destroy(Stack** mystack)
 {
-    assert(mystack);
-    Assert_OK(*mystack);
+    ASSERT_OK(*mystack);
 
-    for(size_t i = ((*mystack)->size); i > 0; i--)
+    for(size_t i = ((*mystack)->size) - 1; i > 0; i--)
         (*mystack)->Stack[i] = NAN;
-    free((*mystack)->Stack);
+    free((*mystack)->left_canary);
     (*mystack)->Stack = nullptr;
+    (*mystack)->left_canary = nullptr;
+    (*mystack)->right_canary = nullptr;
 
     (*mystack)->size = Poison_for_size;
     (*mystack)->capasity = Poison_for_size;
@@ -201,25 +206,38 @@ int stack_destroy(Stack** mystack)
 
 int stackIncrease(Stack* mystack)
 {
-    Assert_OK(mystack);
+    ASSERT_OK(mystack);
 
-    data_t *copy = mystack->Stack;
     size_t len;
     if (mystack->capasity == 0)
         len = 1;
     else
         len = (mystack->capasity) * 2;
 
-    mystack->Stack = (data_t *) realloc(mystack->Stack, len * sizeof(*(mystack->Stack)));
-    if (mystack->Stack == nullptr)
+    data_t* copy = (data_t *) realloc(mystack->left_canary, (len + 4)* sizeof(*(mystack->Stack)));
+    if (copy == nullptr)
     {
-        mystack->Stack = copy;
         mystack->errors = Memory_fault;
         return Error;
     }
+
+    mystack->Stack =        copy + 2;
+    mystack->left_canary =  copy;
+    mystack->right_canary = copy + 2 + len;
+    mystack->right_canary[0] = Stack_canary;
+    mystack->right_canary[1] = 0;
+
     mystack->capasity = len;
 
-    Assert_OK(mystack);
+    if (len == 1)
+    {
+        mystack->left_canary[0] =  0;
+        mystack->left_canary[1] =  Stack_canary;
+        mystack->right_canary[0] = Stack_canary;
+        mystack->right_canary[1] = 0;
+    }
+
+    ASSERT_OK(mystack);
 
     return 1;
 }
@@ -232,17 +250,17 @@ int stackIncrease(Stack* mystack)
 
 int stackReduce(Stack* mystack)
 {
-    Assert_OK(mystack);
+    ASSERT_OK(mystack);
 
-    data_t *newStack = (data_t *) realloc(mystack->Stack, (mystack->capasity) / 2 * sizeof(*(mystack->Stack)));
+    data_t *newStack = (data_t *) realloc(mystack->Stack, (mystack->capasity) / 2 * sizeof(*(mystack->Stack)) + 4);
     if (newStack == nullptr) {
         mystack->errors = Memory_fault;
         return Error;
     }
-    mystack->Stack = newStack;
+    mystack->Stack = newStack + 2;
     mystack->capasity = (mystack->capasity) / 2;
 
-    Assert_OK(mystack);
+    ASSERT_OK(mystack);
 
     return 1;
 }
@@ -253,42 +271,54 @@ int stackReduce(Stack* mystack)
 //! \return - 1 if mystack doesn't have problems, else 0
 //----------------------------------------------------------------------------------------------------------------------
 
-int Dump(Stack* mystack)
-{
+int Dump(Stack* mystack) {
     int check = 1;
 
     DUMPname(mystack);
     printf("[%p]", mystack);
-    if (mystack == nullptr)
-    {
-        printf(" (ERROR!!!!!!!!!!!!!!!)");
+    if (mystack == nullptr) {
+        printf(" (ERROR!!!!!!!!!!!!)");
         check = 0;
         return check;
     }
     printf("\n{\n");
 
+    printf("\tleft canary of structure = %ld", mystack->struct_canary_left);
+    if (mystack->struct_canary_left != mystack->struct_canary_right)
+        printf(" (ERROR!!!!!!!!!!!!)");
+    printf("\n\n");
+
     printf("\tcapasity = %ld\n", mystack->capasity);
-    if (mystack->capasity == Poison_for_size)
-    {
-        printf(" ERROR!!!!!!!!!!!!!");
+    if (mystack->capasity == Poison_for_size) {
+        printf(" (ERROR!!!!!!!!!!!!)");
         check = 0;
     }
     printf("\n");
 
     printf("\tsize = %ld", mystack->size);
-    if (mystack->capasity < mystack->size || mystack->size == Poison_for_size)
-    {
-        printf(" ERROR!!!!!!!!!!!!!");
+    if (mystack->capasity < mystack->size || mystack->size == Poison_for_size) {
+        printf(" (ERROR!!!!!!!!!!!!)");
         check = 0;
     }
-    printf("\n");
+    printf("\n\n");
 
-    printf("\tStack %p\n", mystack->Stack);
+    if (mystack->left_canary != nullptr)
+    {
+        printf("left canaries of Stack: [0] = %g", mystack->left_canary[0]);
+        if (mystack->left_canary[0] != 0)
+            printf(" (ERROR!!!!!!!!!!!!)");
+        printf(", [1] = %g", mystack->left_canary[1]);
+        if (mystack->left_canary[1] != Stack_canary)
+            printf(" (ERROR!!!!!!!!!!!!)");
+        printf("\n");
+    }
+
+    printf("\tStack [%p]\n", mystack->Stack);
     for(size_t i = 0; i < mystack->size && mystack->size != Poison_for_size && mystack->capasity != Poison_for_size; i++)
     {
         printf("\t*[%ld] = %lg", i, mystack->Stack[i]);
         if (mystack->Stack[i] == Poison_for_data)
-            printf(" ERROR!!!!!!!!!!");
+            printf(" (ERROR!!!!!!!!!!!!)");
         printf("\n");
     }
 
@@ -296,9 +326,25 @@ int Dump(Stack* mystack)
     {
         printf("\t [%ld] = %lg", i, mystack->Stack[i]);
         if (mystack->Stack[i] == Poison_for_data)
-            printf(" ERROR!!!!!!!!!!");
+            printf(" (ERROR!!!!!!!!!!!!)");
         printf("\n");
     }
+
+    if(mystack->right_canary != nullptr)
+    {
+        printf("right canaries of Stack: [0] = %g", mystack->right_canary[0]);
+        if (mystack->right_canary[0] != Stack_canary)
+            printf(" (ERROR!!!!!!!!!!!!)");
+        printf(", [1] = %g", mystack->right_canary[1]);
+        if (mystack->right_canary[1] != 0)
+            printf(" (ERROR!!!!!!!!!!!!)");
+        printf("\n");
+    }
+
+    printf("\n\tright canary of structure = %ld", mystack->struct_canary_left);
+    if (mystack->struct_canary_left != mystack->struct_canary_right)
+        printf(" (ERROR!!!!!!!!!!!!)");
+    printf("\n");
 
     printf("}\n");
 
@@ -328,6 +374,9 @@ void Assert_OK(Stack* mystack)
 
 data_t calc_hash(Stack* mystack)
 {
+    if (mystack == nullptr)
+        return NAN;
+
     long long hash = 0;
 
     for(int i = 0; i < mystack->size; i++)
@@ -336,7 +385,7 @@ data_t calc_hash(Stack* mystack)
         long long binary_num = (long long) mystack->Stack[i];
 
         long long circular_num = binary_num << shift;
-        long long end_num      = binary_num >> shift;
+        long long end_num      = binary_num >> (64 - shift);////////////////////////////////////////////////////////////
 
         circular_num = circular_num | end_num;
 
@@ -352,12 +401,13 @@ data_t calc_hash(Stack* mystack)
 //! \param mystack - address of your stack
 //! \return - false if mystack == nullptr or stack was broken else true
 //----------------------------------------------------------------------------------------------------------------------
+
 bool check_hash(Stack* mystack)
 {
     if (mystack == nullptr)
         return false;
 
-    if(calc_hash(mystack) == mystack->hash)
+    if(mystack->hash == calc_hash(mystack))
         return true;
 
     return false;
@@ -369,8 +419,19 @@ bool check_hash(Stack* mystack)
 //! \param mystack - address of your stack
 //! \return - new hash
 //----------------------------------------------------------------------------------------------------------------------
-data_t recalc_Pop_hash(Stack* mystack)
+
+data_t recalc_Pop_hash(const Stack* mystack, data_t element)
 {
+    if (mystack == nullptr)
+        return NAN;
+
+    int position = (mystack->size + Shift) % 64;
+    long long binary_num = (long long) element;
+    long long circular_num = binary_num << position;
+    long long end_num      = binary_num >> (64 - position);
+
+    circular_num = circular_num | end_num;
+    return (data_t) (circular_num ^ ((long long) mystack->hash));
 
 }
 
@@ -380,7 +441,17 @@ data_t recalc_Pop_hash(Stack* mystack)
 //! \param mystack - address of your stack
 //! \return - new hash
 //----------------------------------------------------------------------------------------------------------------------
-data_t recalc_Push_hash(Stack* mystack)
-{
 
+data_t recalc_Push_hash(const Stack* mystack)
+{
+    if (mystack == nullptr)
+        return NAN;
+
+    int position = (mystack->size - 1 + Shift) % 64;
+    long long binary_element = (long long) mystack->Stack[mystack->size - 1];
+    long long circular_num = binary_element << position;
+    long long end_of_num   = binary_element >> (64 - position);
+    circular_num = circular_num | end_of_num;
+
+    return (data_t) (circular_num ^ ((long long) mystack->hash));
 }
