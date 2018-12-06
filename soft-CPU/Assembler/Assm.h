@@ -7,7 +7,7 @@
 
 #include <cstdio>
 #include <cmath>
-#include <cassert>
+//#include <cassert>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -17,6 +17,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 const char way_to_in[] = {"C:\\Users\\max_l\\CLionProjects\\CPU\\source_code.txt"};
 const char way_to_tell[] = {"C:\\Users\\max_l\\CLionProjects\\CPU\\tell.txt"};
+const char way_to_log[] = {"C:\\Users\\max_l\\CLionProjects\\CPU\\logs.txt"};
 const int size_of_max_operation = 2;
 const int Num_of_labels = 20;
 //----------------------------------------------------------------------------------------------------------------------

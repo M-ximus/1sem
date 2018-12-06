@@ -1,6 +1,7 @@
 //
 // Created by max_l on 01.11.2018.
 //
+#include "C:\Program Files (x86)\TX\TXLib.h"
 #include "Common.h"
 #include "soft_CPU.h"
 

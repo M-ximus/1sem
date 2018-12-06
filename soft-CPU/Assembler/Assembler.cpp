@@ -1,6 +1,6 @@
 #include "Assm.h"
 #include "Common.h"
-//#include "C:\Program Files (x86)\TX\TXLib.h"
+#include "C:\Program Files (x86)\TX\TXLib.h"
 
 char* Assembler(int source_code, FILE* byte_code)
 {
@@ -249,9 +249,23 @@ char* compile(mystring* Code, LABELS* labels)
 
     //printf("i am alive");
 
+    FILE* logs = fopen(way_to_log, "wb");
+
     pos_code = 0;
-    for(int i = 0; Code[i].String != nullptr && i < operations_number; i++)// warning
-        pos_code += write_comand(Code[i].String, bin_code + pos_code, labels, &free_label, start, 1);
+    for(int i = 0; Code[i].String != nullptr && i < operations_number; i++)
+    {// warning
+        int new_shift = write_comand(Code[i].String, bin_code + pos_code, labels, &free_label, start, 1);
+        size_t len = strlen(Code[i].String);
+        char space[] = "    ";
+        fwrite(&pos_code, sizeof(int), 1, logs);
+        fwrite(space, sizeof(char), 4, logs);
+        fwrite(Code[i].String, sizeof(Code[i].String[0]), len, logs);
+        fwrite(space, sizeof(char), 4, logs);
+        fwrite(bin_code + pos_code, sizeof(char), new_shift, logs);
+        char enter[] = "\r\n";
+        fwrite(enter, sizeof(char), 2, logs);
+        pos_code += new_shift;
+    }
 
     return bin_code;
 

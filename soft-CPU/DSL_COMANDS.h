@@ -64,7 +64,7 @@
         abort();\
     }\
     second_element = stackPop(CPU_stack);\
-    if (!std::isfinite(first_element))\
+    if (!std::isfinite(second_element))\
     {\
         printf("Pop from zero-stack!!!");\
         abort();\

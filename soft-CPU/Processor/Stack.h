@@ -10,7 +10,8 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
-#include <cassert>
+
+//#include <cassert>
 #include <time.h>
 
 //----------------------------------------------------------------------------------------------------------------------

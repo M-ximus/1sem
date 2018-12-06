@@ -9,7 +9,7 @@
 #include "Stack.h"
 #include <iostream>
 #include <cstdlib>
-#include <cassert>
+//#include <cassert>
 #include <cstring>
 #include <cmath>
 #include <sys/types.h>
