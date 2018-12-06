@@ -44,4 +44,42 @@
     }\
 };
 
+#define CHECK_REG {\
+    if (bynary_code[*pc] < REG_RAX || bynary_code[*pc] >= (REG_RAX + num_of_reg))\
+    {\
+        printf("Binary code error, i don't know this register %c", bynary_code[*pc]);\
+        abort();\
+    }\
+};
+
+#define CUR_REG (bynary_code[*pc] - REG_RAX)
+
+#define EMPTY_SHIFT *pc += 2;
+
+#define POP_TWO_NUMBERS \
+    first_element = stackPop(CPU_stack);\
+    if (!std::isfinite(first_element))\
+    {\
+        printf("Pop from zero-stack!!!");\
+        abort();\
+    }\
+    second_element = stackPop(CPU_stack);\
+    if (!std::isfinite(first_element))\
+    {\
+        printf("Pop from zero-stack!!!");\
+        abort();\
+    }
+
+#define POP_ONE_NUMBER \
+    first_element = stackPop(CPU_stack);\
+    if (!std::isfinite(first_element))\
+    {\
+        printf("Pop from zero-stack!!!");\
+        abort();\
+    }
+
+#define POS_TO_JUMP \
+    double* data = (double*) (bynary_code + *pc);\
+    int pos_to_jump = (int) (*data);
+
 #endif //CPU_DSL_COMANDS_H

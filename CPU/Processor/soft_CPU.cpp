@@ -2,7 +2,6 @@
 // Created by max_l on 01.11.2018.
 //
 #include "Common.h"
-#include "comand.h"
 #include "soft_CPU.h"
 
 int CPU(char* bynary_code, int machine_code)
@@ -25,7 +24,7 @@ int CPU(char* bynary_code, int machine_code)
 //! @return - address of this buffer
 //----------------------------------------------------------------------------------------------------------------------
 
-char* fillBuff(int inFile)
+/*char* fillBuff(int inFile)
 {
     assert(inFile > 0);
 
@@ -39,7 +38,7 @@ char* fillBuff(int inFile)
     assert(error == numSymbols);
 
     return buff;
-}
+}*/
 
 //----------------------------------------------------------------------------------------------------------------------
 //! This function calculate number of symbols in file
@@ -51,7 +50,7 @@ char* fillBuff(int inFile)
 //! @Note - this function return position of reading symbol to start of file
 //----------------------------------------------------------------------------------------------------------------------
 
-long int calcSize(const char* inFile)
+/*long int calcSize(const char* inFile)
 {
     assert(inFile != nullptr);
 
@@ -59,7 +58,7 @@ long int calcSize(const char* inFile)
     _stat(inFile, &fileInfo);
 
     return fileInfo.st_size;
-}
+}*/
 
 int run(char* bynary_code)
 {
@@ -69,7 +68,7 @@ int run(char* bynary_code)
     Stack* CPU_stack = stackCreate(start_size_for_CPU_stack);
     Stack* CALL_stack = stackCreate(start_size_for_CALL_stack);
     char* RAM = (char*) calloc(size_of_RAM, sizeof(*RAM));
-    double* REGisters = (char*) calloc(num_of_reg, sizeof(*REGisters));
+    double* REGisters = (double *) calloc(num_of_reg, sizeof(*REGisters));
 
     assert(RAM != nullptr);
     assert(REGisters != nullptr);
@@ -85,6 +84,7 @@ int run(char* bynary_code)
     stack_destroy(&CPU_stack);
     stack_destroy(&CALL_stack);
     RAM_destroy(&RAM);
+    REG_destroy(&REGisters);
 
     return 1;
 }
@@ -93,14 +93,16 @@ int run(char* bynary_code)
 
 char do_command(char* bynary_code, int* pc, Stack* CPU_stack, Stack* CALL_stack, char* RAM, double* REGisters)
 {
+    char answer = -1;
     switch(bynary_code[*pc])
     {
         #define DEF_CMD(name, num_com, func_asm, func_CPU) case CMD_##name:\
         {\
+            answer = CMD_##name;\
             (*pc)++;\
             func_CPU;\
             break;\
-        }\
+        }
 
         #define DEF_MEM(name, num_arg)  ;
         #define DEF_REG(name, num_arg)  ;
@@ -117,6 +119,8 @@ char do_command(char* bynary_code, int* pc, Stack* CPU_stack, Stack* CALL_stack,
             abort();
         }
     }
+
+    return answer;
 }
 
 //!
@@ -133,4 +137,32 @@ int RAM_destroy(char** RAM)
     *RAM = nullptr;
 
     return 1;
+}
+
+//!
+
+int REG_destroy(double** REGisters)
+{
+    assert(REGisters != nullptr);
+    assert((*REGisters) != nullptr);
+
+    for(int i = 0; i < num_of_reg; i++)
+        (*REGisters)[i] = NAN;
+
+    free(*REGisters);
+    REGisters = nullptr;
+
+    return 1;
+}
+
+bool is_equal(double first, double second, double diviation)
+{
+    assert(std::isfinite(first));
+    assert(std::isfinite(second));
+    assert(std::isfinite(diviation));
+
+    if (first < (second + diviation) && first > (second - diviation))
+        return true;
+
+    return false;
 }

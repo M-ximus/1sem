@@ -27,8 +27,8 @@ char* Assembler(int source_code, FILE* byte_code)
     }
     free(labels);
 
-    return nullptr;
-    //return bin_code;
+    //return nullptr;
+    return bin_code;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
