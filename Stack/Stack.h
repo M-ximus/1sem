@@ -32,20 +32,20 @@
 #endif
 
 #ifdef _DEBUGGER
-#define ASSERT_OK( check ) \
-{\
-    if( !(check) )\
-    {\
-        printf("%s is failed in %d\n", #check, __LINE__);\
-        Dump( check );\
-        abort();\
+#define ASSERT_OK( check )                                                                                             \
+{                                                                                                                      \
+    if( !(stackOk((check))) )                                                                                             \
+    {                                                                                                                  \
+        printf("%s is failed in %d\n", #check, __LINE__);                                                              \
+        Dump( check );                                                                                                 \
+        abort();                                                                                                       \
     }\
 };
 #else
-#define ASSERT_OK
+#define ASSERT_OK( check ) stackOk( check );
 #endif
 
-#define assert( check )                                                                                                \
+#define assert( check )                                                                                            \
 {                                                                                                                      \
     if( !(check) )                                                                                                     \
     {                                                                                                                  \
@@ -119,7 +119,7 @@ bool stackOk(Stack* mystack);
 
 //----------------------------------------------------------------------------------------------------------------------
 //! This function push element in your stack
-//! \param mystack - address of ypur stack
+//! \param mystack - address of your stack
 //! \param element - element, that you want to push
 //! \return - 1 if it Ok and 0 if it have problems
 //----------------------------------------------------------------------------------------------------------------------
