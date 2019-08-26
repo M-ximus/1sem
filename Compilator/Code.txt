@@ -1,0 +1,20 @@
+#In_the_far_far_away_galaxy ( )
+Yoda_said:
+    a ,I'm_your_father ,my_young_padawan
+    Leia ( a ) ,my_young_padawan
+    Calc_fact ( a ) Solo a ,my_young_padawan
+    Luke ( a ) ,my_young_padawan
+    a Money ,my_young_padawan
+,may_the_force_be_with_you
+
+#Calc_fact ( param )
+Yoda_said:
+    {
+       1 Money ,my_young_padawan
+       Chui ( 0 ) ,my_young_padawan
+    } it's_your_droids? ( param = 1 ) ,my_young_padawan
+    a ,I'm_your_father ,my_young_padawan
+    Calc_fact ( param - 1 ) Solo a ,my_young_padawan
+    a * param Solo param ,my_young_padawan
+    param Money ,my_young_padawan
+,may_the_force_be_with_you //

@@ -1,0 +1,139 @@
+IN
+POP rax
+IN
+POP rbx
+IN
+POP rcx
+PUSH 0
+POP rdx
+PUSH 0
+PUSH 0
+PUSH 0
+POP [1]
+POP [2]
+POP [3]
+CALL :SOLVE_SQUARE
+PUSH rax
+PUSH 0
+JC :NO_ROOTS
+PUSH rax
+PUSH 1
+JC :ONE_ROOT
+PUSH rax
+PUSH 2
+JC :TWO_ROOTS
+PUSH rax
+PUSH 3
+JC :INFINITE
+PUSH -42
+OUT
+END;
+:SOLVE_SQUARE
+PUSH rax
+PUSH 0
+JC :LINEAR
+PUSH rbx
+PUSH rbx
+MUL
+PUSH 4
+PUSH rax
+MUL
+PUSH rcx
+MUL
+SUB
+POP rdx
+PUSH rdx
+PUSH 0
+JB :DESCR<0
+PUSH rdx
+PUSH 0
+JC :DESCR=0
+PUSH rdx
+SQRT
+POP rdx
+PUSH 0
+PUSH rbx
+SUB
+PUSH rdx
+ADD
+PUSH 2
+DIV
+POP [1]
+PUSH 0
+PUSH rbx
+SUB
+PUSH rdx
+SUB
+PUSH 2
+DIV
+POP [2]
+PUSH 2
+POP rax
+:end_func
+RET
+:DESCR<0
+PUSH 0
+POP rax
+JMP :end_func
+:DESCR=0
+PUSH 0
+PUSH rbx
+SUB
+PUSH rdx
+ADD
+PUSH 2
+DIV
+POP [1]
+PUSH 1
+POP rax
+JMP :end_func
+:LINEAR
+PUSH 0
+PUSH rbx
+JC :a=0,b=0
+PUSH 0
+PUSH rcx
+SUB
+PUSH rbx
+DIV
+POP [1]
+PUSH 1
+POP rax
+JMP :end_func
+:a=0,b=0
+PUSH rcx
+PUSH 0
+JC :a=0,b=0,c=0
+PUSH 0
+POP rax
+JMP :end_func
+:a=0,b=0,c=0
+PUSH 3
+POP rax
+JMP :end_func
+:NO_ROOTS
+PUSH 0
+OUT
+END;
+:ONE_ROOT
+PUSH 1
+OUT
+SPC
+PUSH [1]
+OUT
+END;
+:TWO_ROOTS
+PUSH 2
+OUT
+SPC
+PUSH [1]
+OUT
+SPC
+PUSH [2]
+OUT
+MEOW
+END;
+:INFINITE
+PUSH 3
+OUT
+END;

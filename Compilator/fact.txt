@@ -1,0 +1,11 @@
+#Calc_fact ( param )
+Yoda_said:
+    {
+       1 Money ,my_young_padawan
+       Chui ( 0 ) ,my_young_padawan
+    } it's_your_droids? ( param = 1 ) ,my_young_padawan
+    a ,I'm_your_father ,my_young_padawan
+    Calc_fanc ( param - 1 ) Solo a ,my_young_padawan
+    a * param Solo param ,my_young_padawan
+    param Money ,my_young_padawan
+,may_the_force_be_with_you //
